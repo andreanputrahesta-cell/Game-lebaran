@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Lebaran - Andrean Putra Hesta</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #064e3b; color: white; touch-action: none; }
+        #game-container { position: relative; width: 100vw; height: 100vh; background: linear-gradient(180deg, #064e3b 0%, #065f46 100%); overflow: hidden; }
+        
+        /* Keranjang */
+        #basket { position: absolute; bottom: 30px; width: 90px; height: 60px; background: #fbbf24; border-radius: 10px 10px 45px 45px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; font-size: 35px; border: 4px solid #f59e0b; box-shadow: 0 8px 20px rgba(0,0,0,0.4); z-index: 10; }
+        
+        /* Item Jatuh */
+        .item { position: absolute; font-size: 45px; user-select: none; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3)); }
+        
+        /* Skor */
+        #score { position: absolute; top: 20px; left: 20px; font-size: 22px; font-weight: bold; background: rgba(255,255,255,0.2); padding: 8px 20px; border-radius: 30px; backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.3); }
+        
+        /* Modal Ucapan */
+        #msg-box { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; color: #064e3b; padding: 40px 25px; border-radius: 35px; text-align: center; width: 85%; max-width: 400px; box-shadow: 0 0 60px rgba(0,0,0,0.6); z-index: 100; border: 10px solid #fbbf24; animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        
+        @keyframes popIn { from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+        
+        h2 { margin: 0; font-size: 26px; color: #065f46; line-height: 1.2; }
+        .blessing { font-size: 18px; margin: 15px 0; color: #374151; }
+        
+        /* Gaya Nama Andrean */
+        .from-text { font-size: 16px; color: #6b7280; margin-top: 20px; }
+        .sender-name { font-size: 22px; font-weight: 800; color: #b45309; text-shadow: 1px 1px 0px #fde68a; display: block; margin-top: 5px; }
+        
+        button { background: #065f46; color: white; border: none; padding: 15px 30px; border-radius: 30px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 25px; transition: 0.3s; width: 100%; }
+        button:active { transform: scale(0.95); }
+
+        .confetti { position: absolute; width: 12px; height: 12px; z-index: 99; border-radius: 2px; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="score">Berkah: 0</div>
+    <div id="basket">🧺</div>
+    
+    <div id="msg-box">
+        <h2>Minal Aidin<br>Wal Faizin!</h2>
+        <p class="blessing" id="final-msg"></p>
+        <p style="font-weight: 600; color: #065f46; margin-bottom: 0;">Selamat Hari Raya Idul Fitri</p>
+        
+        <div class="from-text">
+            Salam hangat dari:
+            <span class="sender-name">Andrean Putra Hesta</span>
+        </div> 
+
+        <button onclick="resetGame()">Main Lagi</button>
+    </div>
+</div>
+
+<script>
+    const container = document.getElementById('game-container');
+    const basket = document.getElementById('basket');
+    const scoreElement = document.getElementById('score');
+    const msgBox = document.getElementById('msg-box');
+    
+    let score = 0;
+    let gameActive = true;
+
+    // Kontrol Gerak
+    const move = (e) => {
+        if (!gameActive) return;
+        let x = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        x = Math.max(45, Math.min(window.innerWidth - 45, x));
+        basket.style.left = `${x}px`;
+    };
+
+    window.addEventListener('mousemove', move);
+    window.addEventListener('touchmove', move);
+
+    function createItem() {
+        if (!gameActive) return;
+        const item = document.createElement('div');
+        const rand = Math.random();
+        
+        let type = 'good'; // Ketupat/Amplop
+        if (rand > 0.85) type = 'bad'; // Petasan
+        
+        item.className = 'item';
+        item.innerHTML = type === 'bad' ? '🧨' : (rand > 0.4 ? '🥙' : '🧧');
+        item.style.left = Math.random() * (window.innerWidth - 50) + 'px';
+        item.style.top = '-60px';
+        container.appendChild(item);
+
+        let itemPos = -60;
+        let speed = 4 + (score / 150); 
+
+        function fall() {
+            if (!gameActive) { item.remove(); return; }
+            itemPos += speed;
+            item.style.top = itemPos + 'px';
+
+            const itemRect = item.getBoundingClientRect();
+            const basketRect = basket.getBoundingClientRect();
+
+            if (itemRect.bottom >= basketRect.top + 10 && 
+                itemRect.right >= basketRect.left && 
+                itemRect.left <= basketRect.right) {
+                
+                if (type === 'bad') {
+                    gameOver();
+                } else {
+                    score += 10;
+                    scoreElement.innerText = `Berkah: ${score}`;
+                    item.remove();
+                    return;
+                }
+            }
+
+            if (itemPos < window.innerHeight) { 
+                requestAnimationFrame(fall); 
+            } else { 
+                item.remove(); 
+            }
+        }
+        requestAnimationFrame(fall);
+    }
+
+    function gameOver() {
+        gameActive = false;
+        msgBox.style.display = 'block';
+        document.getElementById('final-msg').innerText = `Keren! Kamu dapet ${score} poin berkah. Mohon maaf lahir dan batin ya!`;
+        createConfetti();
+    }
+
+    function createConfetti() {
+        const colors = ['#fbbf24', '#ffffff', '#34d399', '#6ee7b7'];
+        for (let i = 0; i < 60; i++) {
+            const c = document.createElement('div');
+            c.className = 'confetti';
+            c.style.left = Math.random() * 100 + 'vw';
+            c.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            c.style.top = '-20px';
+            c.style.transform = `rotate(${Math.random() * 360}deg)`;
+            container.appendChild(c);
+            
+            let pos = -20;
+            let drift = Math.random() * 2 - 1;
+            function drop() {
+                pos += 4;
+                c.style.top = pos + 'px';
+                c.style.left = (parseFloat(c.style.left) + drift) + 'vw';
+                if (pos < window.innerHeight) requestAnimationFrame(drop);
+                else c.remove();
+            }
+            drop();
+        }
+    }
+
+    function resetGame() {
+        score = 0;
+        scoreElement.innerText = 'Berkah: 0';
+        gameActive = true;
+        msgBox.style.display = 'none';
+        // Hapus item yang tersisa
+        document.querySelectorAll('.item').forEach(i => i.remove());
+    }
+
+    // Interval munculnya item
+    let gameLoop = setInterval(createItem, 750);
+</script>
+
+</body>
+</html>
